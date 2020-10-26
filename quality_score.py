@@ -25,14 +25,14 @@ def quality_score(quality_str):
         print('BOTH! ERROR!')
         
     elif quality_characters.issubset(phred64):
-        for i in range(len(qual1)):
-            quality_scores.append(int(ph64[qual1[i]]))
+        for i in range(len(quality_str)):
+            quality_scores.append(int(ph64[quality_str[i]]))
     
     elif quality_characters.issubset(phred33):
-        for i in range(len(qual1)):
-             quality_scores.append(int(ph33[qual1[i]]))
+        for i in range(len(quality_str)):
+             quality_scores.append(int(ph33[quality_str[i]]))
    
-    # If string contains unknows acsii characters
+    # If string contains unknows characters
     else:
         print("Error")
     
