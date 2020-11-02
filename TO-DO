@@ -1,0 +1,34 @@
+# To-do 26/10
+- *Read files*
+    - Celia: Read and write compressed and uncompressed files.
+    
+
+- *Quality scores*
+    - Viktor: Recognizing the format - Phred 33 vs 64. 
+    - Viktor: Function for translating ASCII characters in fastq files into numerical scores. Needed for trimming.
+    
+    
+- *Trimming*
+    - Celia: Remove leading and trailing bases, according to user input
+    - Celia: Remove leading and trailing bases, if quality < threshold -- threshold default = 3
+    - Celia: Sliding window algorithm for further trimming -- window size default = 4, quality threshold default = 15
+    
+    
+- *Read filtering (simultaneously in both forward and reverse files)*
+    - Remove reads when average quality < threshold -- threshold default = 15
+    - Eliminate reads when length < threshold -- threshold default = 36bp
+    
+
+- *Statistics (flexible) -- check what trimmomatic output looks like*
+    - Keep track of trimmed and removed reads.
+    - Calculate statistics on a fastq/fasta file without trimming such as number of entries, number of bases, length of entries, average length of entries, quality (average, best/worst 10%), etc.
+    - Same after trimming.
+    
+    
+- *User input through command line -- with argparse library*
+    - Allow user to specify:
+        - Input and output files
+        - Phred encoding type
+        - Heading and trailing crops
+        - Sliding window size and quality threshold
+        - Minimum read length
