@@ -206,7 +206,7 @@ else:
                 # Continue to next read without printing
                 continue
 
-            # STEP 5: Drop reads with too many N bases
+            ## STEP 5 (COMMON): Drop reads with too many N bases
             if (read_fw.count('N') > N_MAX) or (read_rev.count('N') > N_MAX):
                 # Keep track of dropped read
                 dropped_reads += 1                
@@ -221,7 +221,7 @@ else:
                 # Continue to next read without printing
                 continue 
 
-            ## STEP 5 (COMMON): Print trimmed reads onto outfile 
+            ## STEP 6 (COMMON): Print trimmed reads onto outfile 
             print(fastq_fw[0], file=out_fw)
             print(read_fw, file=out_fw)
             print('+', file=out_fw)
