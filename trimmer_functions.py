@@ -1,13 +1,8 @@
 '''
 Fucntions
 *
-*
-*
-
 '''
 import argparse
-
-
 
 
 def run_arg_parser():
@@ -41,6 +36,9 @@ def run_arg_parser():
 
     parser.add_argument('-ml', '--min_len', default='36', metavar='',
                         help="minimum length for trimmed reads")
+
+    parser.add_argument('-ph', '--phred', default='', metavar='',
+                        help="phred encoding, user input")
 
     return parser.parse_args() # getting the arguments from the parser
 
@@ -90,7 +88,7 @@ def removal_of_bases(DNA_str,quality_str, quality_score, LEADING, TRAILING):
     return DNA_str, quality_str, quality_score
 
 
-def phred_control(fastqFile):
+def phred_control(fastqFile, user_phred):
     """Determining if a file is phred 33 or phred 64 encoded"""
     infile = open(fastqFile, 'r')
     line = infile.readline()[:-1]
@@ -121,6 +119,11 @@ def phred_control(fastqFile):
             phred_determined = True
             return "phred64"
 
+        # In case phred can't be determined, use the users input. 
+        if line == '': 
+            phred_determined = True
+            return user_phred
+
         line = infile.readline()[:-1]
 
     infile.close()
@@ -128,7 +131,15 @@ def phred_control(fastqFile):
 
 
 def quality_score(quality_str, phred):
+
+    # Controlling if line contains unknown character 
+    set_ph64 = set("@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh")
+    set_ph33 = set("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJ")
+    qual_set = set(quality_str)
+    if len(qual_set.difference(set_ph33))>0 and len(qual_set.difference(set_ph64))>0:
+        return 'unknown'
     
+
     ph64 = {'@': 0,'A': 1,'B': 2,'C': 3, 'D': 4,'E': 5,'F': 6,'G': 7,'H': 8,'I': 9,
         'J': 10,'K': 11,'L': 12,'M': 13,'N': 14,'O': 15,'P': 16,'Q': 17,'R': 18,
         'S': 19,'T': 20,'U': 21,'V': 22,'W': 23,'X': 24,'Y': 25,'Z': 26,'[': 27,
@@ -148,14 +159,12 @@ def quality_score(quality_str, phred):
     if phred == 'phred64':
         for i in range(len(quality_str)):
             quality_scores.append(int(ph64[quality_str[i]]))
+        return quality_scores
 
     #If Phred33
     elif phred == 'phred33':
         for i in range(len(quality_str)):
             quality_scores.append(int(ph33[quality_str[i]]))
+        return quality_scores
 
-    # If string contains unknows characters
-    else:
-        print("There are unknown characters in the quality string of your read. This read will be ommited from the analysis.")
-
-    return quality_scores
+    # If string contains unknows characters None is returned

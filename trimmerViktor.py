@@ -1,6 +1,5 @@
 import trimmer_functions as tf
 
-
 args = tf.run_arg_parser()
 
 ## Print settings
@@ -14,7 +13,7 @@ print('Trail trim: ' + args.trail_trim)     # Trail trim
 print('Window size: ' + args.window_size)   # Window size   (not used)
 print('Threshold: ' + args.threshold)       # Threshold     (not used)
 print('Min lenght: ' + args.min_len)        # Min lenght after trim
-
+print('Phred: ' + args.phred)
 
 ## Take parameters and filenames from arguments
 LEADING = int(args.lead_trim)               # 3' bases to be removed
@@ -23,17 +22,19 @@ BASE_QUALITY = int(args.base_qual)          # Quality threshold for single bases
 AVG_QUALITY = int(args.avg_qual)            # Average quality threshold for read
 MIN_LEN = int(args.min_len)                 # Minimum length for trimmed read
 N_MAX = 3
+USER_PHRED = 'phred33'
 
-in_fwFile = args.file_name #'test_L2_1_pf.fastq'      
-in_revFile = args.file_name2 #'test_L2_2_pf.fastq'
-
+in_fwFile = args.file_name
+in_revFile = args.file_name2
 
 ##################
 # Singe end read #
 ################## 
 if in_revFile == '':
     # Determine Phred encoding type
-    phred = tf.phred_control(in_fwFile)  
+    phred = tf.phred_control(in_fwFile, USER_PHRED) 
+    print('******')
+    print(phred)
     
     # Open files
     file_fw = open(in_fwFile, 'r')
@@ -59,7 +60,12 @@ if in_revFile == '':
 
             # Read quality: encoded (str) and decoded (score)
             qual_str_fw = fastq_fw[3]
+
             qual_score_fw = tf.quality_score(qual_str_fw, phred)
+
+            # If quality score cannt be calculate, don't print to output file
+            if qual_score_fw == 'unknown':
+                continue
             
             ## STEP 1: Remove leading and trailing bases, given user input
             read_fw, qual_str_fw, qual_score_fw = tf.removal_of_bases(read_fw, qual_str_fw, qual_score_fw, LEADING, TRAILING)
@@ -84,8 +90,7 @@ if in_revFile == '':
                 # Keep track of dropped read
                 dropped_reads += 1
                 # Reset
-                line_count = 0
-                fastq_fw = []
+                line_count, fastq_fw = 0, []
                 # Read new line
                 line_fw = file_fw.readline()
                 # Continue to next read without printing
@@ -96,8 +101,7 @@ if in_revFile == '':
                 # Keep track of dropped read
                 dropped_reads += 1                
                 # Reset
-                line_count = 0
-                fastqForward = []
+                line_count, fastqForward = 0, []
                 # Read new lines
                 line_fw = file_fw.readline()    
                 # Continue to next read without printing
@@ -110,8 +114,7 @@ if in_revFile == '':
             print(qual_str_fw, file=out_fw)
 
             # Reset
-            line_count = 0
-            fastq_fw = []
+            line_count, fastq_fw = 0, []
 
         # Read next line
         line_fw = file_fw.readline()
@@ -126,8 +129,12 @@ if in_revFile == '':
 # Paired end reads #
 ####################
 else:
-    # Determine Phred encoding type --> we only check in one file and assume they are the same
-    phred = tf.phred_control(in_fwFile)  
+
+    if tf.phred_control(in_fwFile, USER_PHRED) != tf.phred_control(in_revFile, USER_PHRED):                     ###### Controlling the files use the same phred 
+        print("ERRROR")
+
+    # Determine Phred encoding type
+    phred = tf.phred_control(in_fwFile, USER_PHRED)
 
     # Open files
     file_fw = open(in_fwFile, 'r')
@@ -161,6 +168,10 @@ else:
             qual_str_fw = fastq_fw[3]
             qual_score_fw = tf.quality_score(qual_str_fw, phred)
 
+            # If quality score cannt be calculate, don't print to output file
+            if qual_score_fw == 'unknown':
+                continue
+
             ## STEP 1: Remove leading and trailing bases, given user input
             read_fw, qual_str_fw, qual_score_fw = tf.removal_of_bases(read_fw, qual_str_fw, qual_score_fw, LEADING, TRAILING)
 
@@ -174,7 +185,12 @@ else:
             
             # Read quality: encoded (str) and decoded (score)
             qual_str_rev = fastq_rev[3]
+
             qual_score_rev = tf.quality_score(qual_str_rev, phred)
+            
+            # If quality score cannt be calculate, don't print to output file
+            if qual_score_rev == 'unknown':
+                continue
 
             ## STEP 1: Remove leading and trailing bases, given user input      
             read_rev, qual_str_rev, qual_score_rev = tf.removal_of_bases(read_rev, qual_str_rev, qual_score_rev, LEADING, TRAILING)
@@ -257,3 +273,6 @@ else:
 print('')
 print('===============\nSTATS\n===============')
 print('Read pairs dropped due to low quality/short length:', dropped_reads)
+
+if phred != USER_PHRED:
+    print("Phred encoding was set to {}, but {} was used.".format(USER_PHRED, phred))                   ######  If input phred is not the same as determined phred.
