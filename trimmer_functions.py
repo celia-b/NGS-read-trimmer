@@ -1,6 +1,5 @@
 '''
-Fucntions
-*
+Functions
 '''
 import argparse
 
@@ -19,7 +18,7 @@ def run_arg_parser():
     parser.add_argument('-bq', '--base_qual', default='3', metavar='',
                         help="Quality threshold for single bases ")
 
-    parser.add_argument('-aq', '--avg_qual', default='3', metavar='',
+    parser.add_argument('-aq', '--avg_qual', default='15', metavar='',
                         help="Average quality threshold for read ")
 
     parser.add_argument('-ls', '--lead_trim', default='0', metavar='',
@@ -42,11 +41,11 @@ def run_arg_parser():
 
     return parser.parse_args() # getting the arguments from the parser
 
-
+# Now useless because sliding_window_pop takes WIN_LEN = 1
 def quality_base_pop(read, qual_str, qual_score, BASE_QUALITY):
     """Removing 5 and 3 prime bases based on user input or default value"""
+    ## LEADING POP
     leadingPopped = 0
-
     try:
         while qual_score[0] <= BASE_QUALITY:
             qual_score.pop(0)                                         # Removing low quality leading bases from translated quality string
@@ -54,6 +53,7 @@ def quality_base_pop(read, qual_str, qual_score, BASE_QUALITY):
     except IndexError:                                                # In case the entire read has low quality or all bases were removed in previous step 
         pass
 
+    ## TRAILING POP
     trailingPopped = 0
     try:
         while qual_score[-1] <= BASE_QUALITY:
@@ -62,7 +62,7 @@ def quality_base_pop(read, qual_str, qual_score, BASE_QUALITY):
     except IndexError:                                                # In case the entire read has low quality or all bases were removed in previous step
         pass
 
-    # Trim the read and the encoded quality string accordingly
+    ## Trim the read and the encoded quality string accordingly
     if trailingPopped != 0:
         read = read[leadingPopped:-trailingPopped] 
         qual_str = qual_str[leadingPopped:-trailingPopped]
@@ -70,8 +70,40 @@ def quality_base_pop(read, qual_str, qual_score, BASE_QUALITY):
         read = read[leadingPopped:]
         qual_str = qual_str[leadingPopped:]
 
+
     return read, qual_str, qual_score
 
+
+def sliding_window_pop(read, qual_str, qual_score, WIN_SIZE, AVG_QUALITY):
+    """Removing 5 and 3 prime bases with sliding window approach
+       If WIN_LEN = 1, it uses the single base approach"""
+
+    ## LEADING TRIM 
+    # Read first window
+    window = qual_score[:WIN_SIZE]
+    # Slide
+    while (len(window) != 0) and (sum(window)/len(window) < AVG_QUALITY):
+        # Remove 3' end base
+        qual_score = qual_score[1:]
+        qual_str = qual_str[1:]
+        read = read[1:]
+        # Read new window
+        window = qual_score[:WIN_SIZE]
+    
+
+    ## TRAILING TRIM
+    # Read first window
+    window = qual_score[-WIN_SIZE:]
+    # Slide
+    while (len(window) != 0) and (sum(window)/len(window) < AVG_QUALITY):
+        # Remove 5' end base
+        qual_score = qual_score[:-1]
+        qual_str = qual_str[:-1]
+        read = read[:-1]
+        # Read new window
+        window = qual_score[-WIN_SIZE:]
+
+    return read, qual_str, qual_score
 
 
 def removal_of_bases(DNA_str,quality_str, quality_score, LEADING, TRAILING): 
@@ -127,7 +159,6 @@ def phred_control(fastqFile, user_phred):
         line = infile.readline()[:-1]
 
     infile.close()
-
 
 
 def quality_score(quality_str, phred):
