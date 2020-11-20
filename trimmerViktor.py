@@ -44,11 +44,11 @@ if in_revFile == '':
     else:    
         file_fw = open(in_fwFile, 'r')
     
-    # Output file, remove '.gz' if reading compressed file
+    # Output file, add '.gz' file ending if uncompressed file was read
     if in_fwFile.endswith('.gz'):
-        out_fw = open('trimmed_' + in_fwFile[:-3], 'w')
+        out_fw = gzip.open('trimmed_' + in_fwFile, 'wt')
     else:    
-        out_fw = open('trimmed_' + in_fwFile, 'w')
+        out_fw = gzip.open('trimmed_' + in_fwFile + '.gz', 'wt')
 
     # Read first line and initialize variables
     line_fw = file_fw.readline()
@@ -84,7 +84,7 @@ if in_revFile == '':
             read_fw, qual_str_fw, qual_score_fw = tf.sliding_window_pop(read_fw, qual_str_fw, qual_score_fw, WIN_SIZE, AVG_QUALITY)
 
             ## STEP 3: Drop reads that become too short after trimming
-            if (len(read_fw) < MIN_LEN):                                    
+            if (len(read_fw) < MIN_LEN):                                  
                 # Keep track of dropped read
                 dropped_reads += 1
                 # Reset
@@ -157,16 +157,16 @@ else:
     else:    
         file_rev = open(in_revFile, 'r')
 
-    # Output file, remove '.gz' if reading compressed file
+    # Output file, add '.gz' file ending if uncompressed file was read
     if in_fwFile.endswith('.gz'):
-        out_fw = open('trimmed_' + in_fwFile[:-3], 'w')
+        out_fw = gzip.open('trimmed_' + in_fwFile, 'wt')
     else:    
-        out_fw = open('trimmed_' + in_fwFile, 'w')
+        out_fw = gzip.open('trimmed_' + in_fwFile + '.gz', 'wt')
         
     if in_revFile.endswith('.gz'):
-        out_rev = open('trimmed_' + in_revFile[:-3], 'w')
+        out_rev = gzip.open('trimmed_' + in_revFile, 'w')
     else:    
-        out_rev = open('trimmed_' + in_revFile, 'w')
+        out_rev = gzip.open('trimmed_' + in_revFile + '.gz', 'wt')
         
 
     # Read first line of each file and initialize variables
