@@ -2,7 +2,7 @@
 Functions
 '''
 import argparse
-
+import gzip
 
 def run_arg_parser():
     """An argparser function returning values from the command line."""
@@ -122,7 +122,12 @@ def removal_of_bases(DNA_str,quality_str, quality_score, LEADING, TRAILING):
 
 def phred_control(fastqFile, user_phred):
     """Determining if a file is phred 33 or phred 64 encoded"""
-    infile = open(fastqFile, 'r')
+
+    if fastqFile.endswith('.gz'):
+        infile = gzip.open(fastqFile, 'rt')
+    else:    
+        infile = open(fastqFile, 'r')
+
     line = infile.readline()[:-1]
 
     phred64 = set("@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh")
