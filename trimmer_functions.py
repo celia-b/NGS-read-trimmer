@@ -4,106 +4,95 @@ Functions
 import argparse
 import gzip
 
+
 def run_arg_parser():
     """An argparser function returning values from the command line."""
     parser = argparse.ArgumentParser(description = 'THE NGS READ TRIMMER')  # creating the argument parser
 
-    parser.add_argument('file_name', metavar = 'File name 1',               # specifing argument (a positional argument)
-                        help = "name of the fastq file")
+    parser.add_argument('FILE1', metavar = 'File name 1',               # specifing argument (a positional argument)
+                        help = "Your forward fastq file.")
 
-    parser.add_argument('file_name2', metavar = 'File name 2',              # nargs='?' makes it an optinal positional argument 
+    parser.add_argument('FILE2', metavar = 'File name 2',              # nargs='?' makes it an optional positional argument 
                          nargs ='?' , default='',
-                         help = "second file (optional)")
+                         help = "Your reverse fastq file (optional, only for paired-end reads).")
+    
+    parser.add_argument('-PH', '--PHRED', default='', metavar='',
+                        help = " Phred encoding type (phred 33 or phred 64). The encoding type will automatically be determined by the program, and if user input does not match true type, a warning will be printed onto the log file.")
 
-    parser.add_argument('-bq', '--base_qual', default='3', metavar='',
-                        help="Quality threshold for single bases ")
+    parser.add_argument('-L', '--LEADING', default='0', metavar='',
+                        help = "Number of bases to be trimmed from 3' end of all reads, regardless of quality. Default is 0.")
 
-    parser.add_argument('-aq', '--avg_qual', default='15', metavar='',
-                        help="Average quality threshold for read ")
+    parser.add_argument('-T', '--TRAILING', default='0', metavar='',
+                        help = "Number of bases to be trimmed from all 5' end of all reads, regardless of quality. Default is 0.")
 
-    parser.add_argument('-ls', '--lead_trim', default='0', metavar='',
-                        help="X bases to trim from 3' strand")
+    parser.add_argument('-W', '--WINDOWSIZE', default='4', metavar='',   
+                        help = 'Window size for sliding window trimming approach. Default is 4. If WINDOWSIZE is 1, then the single base appoach is used and BASEQUALITY is used as quality threshold, instead of AVGQUALITY.')
 
-    parser.add_argument('-ts', '--trail_trim', default='0', metavar='',
-                        help="X bases to trim from 5' strand")
+    parser.add_argument('-AQ', '--AVGQUALITY', default='15', metavar='',
+                        help = "Average quality threshold for sliding window trimming approach. Default is 15.")
 
-    parser.add_argument('-w', '--window_size', default='4', metavar='',     # optional arguments (metavar='' makes help output cleaner)
-                        help='output to file bla bla')
+    parser.add_argument('-BQ', '--BASEQUALITY', default='3', metavar='',
+                        help = "Quality threshold for single base trimming approach. Default is 3.")
 
-    parser.add_argument('-t', '--threshold', default='15', metavar='',
-                        help = 'quality score threshold')
+    parser.add_argument('-ML', '--MINLEN', default='36', metavar='',
+                        help = "Minimum allowed length of reads. Default is 36.")
 
-    parser.add_argument('-ml', '--min_len', default='36', metavar='',
-                        help="minimum length for trimmed reads")
-
-    parser.add_argument('-ph', '--phred', default='', metavar='',
-                        help="phred encoding, user input")
+    parser.add_argument('-N', '--MAXN', default='15', metavar='',
+                        help = 'Maximum number of unknown bases allowed in a read. Default is 3.')
 
     return parser.parse_args() # getting the arguments from the parser
 
-# Now useless because sliding_window_pop takes WIN_LEN = 1
-def quality_base_pop(read, qual_str, qual_score, BASE_QUALITY):
-    """Removing 5 and 3 prime bases based on user input or default value"""
-    ## LEADING POP
-    leadingPopped = 0
-    try:
-        while qual_score[0] <= BASE_QUALITY:
-            qual_score.pop(0)                                         # Removing low quality leading bases from translated quality string
-            leadingPopped += 1                                        # Keep track of number of removed characters
-    except IndexError:                                                # In case the entire read has low quality or all bases were removed in previous step 
-        pass
 
-    ## TRAILING POP
-    trailingPopped = 0
-    try:
-        while qual_score[-1] <= BASE_QUALITY:
-            qual_score.pop(-1)                                        # Removing low quality leading bases from translated quality string
-            trailingPopped += 1                                       # Keep track of number of removed characters
-    except IndexError:                                                # In case the entire read has low quality or all bases were removed in previous step
-        pass
-
-    ## Trim the read and the encoded quality string accordingly
-    if trailingPopped != 0:
-        read = read[leadingPopped:-trailingPopped] 
-        qual_str = qual_str[leadingPopped:-trailingPopped]
-    else: 
-        read = read[leadingPopped:]
-        qual_str = qual_str[leadingPopped:]
-
-
-    return read, qual_str, qual_score
-
-
-def sliding_window_pop(read, qual_str, qual_score, WIN_SIZE, AVG_QUALITY):
-    """Removing 5 and 3 prime bases with sliding window approach
-       If WIN_LEN = 1, it uses the single base approach"""
-
+def sliding_window_pop(read, qual_str, qual_score, WIN_SIZE, AVG_QUALITY, BASE_QUALITY):
+    """Removing 5 and 3 prime bases with sliding window approach"""
+    trimmed = False
     ## LEADING TRIM 
     # Read first window
     window = qual_score[:WIN_SIZE]
-    # Slide
-    while (len(window) != 0) and (sum(window)/len(window) < AVG_QUALITY):
-        # Remove 3' end base
-        qual_score = qual_score[1:]
-        qual_str = qual_str[1:]
-        read = read[1:]
-        # Read new window
-        window = qual_score[:WIN_SIZE]
-    
+    # Slide  
+    if WIN_SIZE > 1:      
+        while (len(window) != 0) and (sum(window)/len(window) < AVG_QUALITY):
+            trimmed = True
+            # Remove 3' end base
+            qual_score = qual_score[1:]
+            qual_str = qual_str[1:]
+            read = read[1:]
+            # Read new window
+            window = qual_score[:WIN_SIZE]
+    elif WIN_SIZE == 1:
+        while (len(window) != 0) and (sum(window)/len(window) < BASE_QUALITY):
+            trimmed = True
+            # Remove 3' end base
+            qual_score = qual_score[1:]
+            qual_str = qual_str[1:]
+            read = read[1:]
+            # Read new window
+            window = qual_score[:WIN_SIZE]   
 
     ## TRAILING TRIM
     # Read first window
     window = qual_score[-WIN_SIZE:]
     # Slide
-    while (len(window) != 0) and (sum(window)/len(window) < AVG_QUALITY):
-        # Remove 5' end base
-        qual_score = qual_score[:-1]
-        qual_str = qual_str[:-1]
-        read = read[:-1]
-        # Read new window
-        window = qual_score[-WIN_SIZE:]
+    if WIN_SIZE > 1:
+        while (len(window) != 0) and (sum(window)/len(window) < AVG_QUALITY):
+            trimmed = True
+            # Remove 5' end base
+            qual_score = qual_score[:-1]
+            qual_str = qual_str[:-1]
+            read = read[:-1]
+            # Read new window
+            window = qual_score[-WIN_SIZE:]
+    elif WIN_SIZE == 1:
+        while (len(window) != 0) and (sum(window)/len(window) < BASE_QUALITY):
+            trimmed = True
+            # Remove 5' end base
+            qual_score = qual_score[:-1]
+            qual_str = qual_str[:-1]
+            read = read[:-1]
+            # Read new window
+            window = qual_score[-WIN_SIZE:]        
 
-    return read, qual_str, qual_score
+    return read, qual_str, qual_score, trimmed
 
 
 def removal_of_bases(DNA_str,quality_str, quality_score, LEADING, TRAILING): 
@@ -204,3 +193,10 @@ def quality_score(quality_str, phred):
         return quality_scores
 
     # If string contains unknows characters None is returned
+
+
+def print_read(ID, seq, qual_str, file):
+    print(ID, file=file)
+    print(seq, file=file)
+    print('+', file=file)
+    print(qual_str, file=file)
