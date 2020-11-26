@@ -3,7 +3,8 @@ Functions
 '''
 import argparse
 import gzip
-
+import sys
+import os
 
 def run_arg_parser():
     """An argparser function returning values from the command line."""
@@ -139,11 +140,11 @@ def phred_control(fastqFile, user_phred):
 
         if is_phred33 and not is_phred64:
             phred_determined = True
-            return "phred33"
+            return "33"
 
         elif not is_phred33 and is_phred64:
             phred_determined = True
-            return "phred64"
+            return "64"
 
         # In case phred can't be determined, use the users input. 
         if line == '': 
@@ -161,10 +162,10 @@ def quality_score(quality_str, phred):
     set_ph64 = set("@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh")
     set_ph33 = set("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJ")
     qual_set = set(quality_str)
+
     if len(qual_set.difference(set_ph33))>0 and len(qual_set.difference(set_ph64))>0:
         return 'unknown'
     
-
     ph64 = {'@': 0,'A': 1,'B': 2,'C': 3, 'D': 4,'E': 5,'F': 6,'G': 7,'H': 8,'I': 9,
         'J': 10,'K': 11,'L': 12,'M': 13,'N': 14,'O': 15,'P': 16,'Q': 17,'R': 18,
         'S': 19,'T': 20,'U': 21,'V': 22,'W': 23,'X': 24,'Y': 25,'Z': 26,'[': 27,
@@ -181,13 +182,13 @@ def quality_score(quality_str, phred):
     quality_scores = []
 
     # If Phred64   
-    if phred == 'phred64':
+    if phred == '64':
         for i in range(len(quality_str)):
             quality_scores.append(int(ph64[quality_str[i]]))
         return quality_scores
 
     #If Phred33
-    elif phred == 'phred33':
+    elif phred == '33':
         for i in range(len(quality_str)):
             quality_scores.append(int(ph33[quality_str[i]]))
         return quality_scores
@@ -200,3 +201,37 @@ def print_read(ID, seq, qual_str, file):
     print(seq, file=file)
     print('+', file=file)
     print(qual_str, file=file)
+
+def controling_output_file(in_file):
+    if in_file.endswith('.gz'):
+        base = in_file.split('.')[0]
+        file_name = base + '_trimmed.txt.gz'
+        if  os.path.exists(os.getcwd() + '/' + file_name):
+            answer = None
+            while  answer not in ['y','n']:
+                answer = input("{} will be overwritten. Do you want to continue? y/n: ".format(file_name))
+                if answer == 'y':
+                    return(gzip.open(file_name, 'wt'))
+                elif answer == 'n':
+                    print('Exiting program')
+                    sys.exit(1)
+                else:
+                    print('Invalid input')
+        else:
+            return(gzip.open(file_name, 'wt'))
+    else:
+        base = in_file.split('.')[0]
+        file_name = base + '_trimmed.fa'
+        if  os.path.exists(os.getcwd() + '/' + file_name):
+            answer = None
+            while  answer not in ['y','n']:
+                answer = input("{} will be overwritten. Do you want to continue? y/n: ".format(file_name))
+                if answer == 'y':
+                    return(open(file_name, 'w'))
+                elif answer == 'n':
+                    print('Exiting program')
+                    sys.exit(1)
+                else:
+                    print('Invalid input')
+        else:
+            return(open(file_name, 'w'))
