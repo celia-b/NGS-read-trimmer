@@ -17,7 +17,7 @@ def run_arg_parser():
                          nargs ='?' , default='',
                          help = "Your reverse fastq file (optional, only for paired-end reads).")
     
-    parser.add_argument('-PH', '--PHRED', default='', metavar='',
+    parser.add_argument('-PH',ﬁ '--PHRED', default='', metavar='',
                         help = " Phred encoding type (phred 33 or phred 64). The encoding type will automatically be determined by the program, and if user input does not match true type, a warning will be printed onto the log file.")
 
     parser.add_argument('-L', '--LEADING', default='0', metavar='',
