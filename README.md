@@ -1,1 +1,1 @@
-# NGS Read Trimmer - Coding Trimmomatic
+# MagicClipper - An NGS Read Trimmer
