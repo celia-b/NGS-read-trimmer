@@ -1,1 +1,1 @@
-# python_project
+# NGS Read Trimmer - Coding Trimmomatic
